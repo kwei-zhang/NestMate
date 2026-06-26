@@ -172,7 +172,9 @@ export default function EditPost() {
       </label>
 
       <div>
-        <label className="text-sm text-gray-600 block mb-1">生活习惯标签（每行一个）</label>
+        <label className="text-sm text-gray-600 block mb-1">
+          生活习惯标签（每行一个，最多 5 条；只放影响合租的，如抽烟/宠物/作息）
+        </label>
         <textarea
           className={`${input} h-24`}
           placeholder={"🚭 不抽烟\n🚫 不带异性回家"}

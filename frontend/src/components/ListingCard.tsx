@@ -47,7 +47,7 @@ export default function ListingCard({ listing }: { listing: Listing }) {
       </div>
       {listing.highlights && listing.highlights.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {listing.highlights.slice(0, 4).map((h) => (
+          {listing.highlights.slice(0, 5).map((h) => (
             <span key={h} className="text-xs px-2 py-0.5 rounded-full bg-nest/10 text-nest">
               {h}
             </span>

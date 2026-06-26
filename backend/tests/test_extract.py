@@ -35,3 +35,23 @@ def test_apply_extraction_copies_highlights():
     assert listing.title == "北约克招租"
     assert listing.highlights == ["🚭 不抽烟", "🍃 不吸大麻", "🚫 不带异性回家"]
     assert listing.extracted_json["intent"] == "offering"
+
+
+def test_highlights_capped_at_five():
+    extracted = ExtractedListing(highlights=[f"tag{i}" for i in range(9)])
+    assert len(extracted.highlights) == 5
+
+
+def test_highlights_drop_not_mentioned_placeholders():
+    extracted = ExtractedListing(
+        highlights=["🚭 不抽烟", "🚭 吸烟信息未提及", "宠物不详", "  ", "🐱 养猫"]
+    )
+    assert extracted.highlights == ["🚭 不抽烟", "🐱 养猫"]
+
+
+def test_listing_edit_highlights_capped():
+    from app.schemas.listing import ListingEdit
+
+    edit = ListingEdit(highlights=[f"t{i}" for i in range(8)])
+    assert edit.highlights is not None
+    assert len(edit.highlights) == 5

@@ -1,6 +1,33 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+MAX_HIGHLIGHTS = 5
+
+# Phrases that mark a "no info" placeholder highlight we never want to keep.
+_PLACEHOLDER_MARKERS = (
+    "未提及",
+    "未提到",
+    "没提",
+    "未说明",
+    "不详",
+    "未知",
+    "暂无",
+    "n/a",
+    "not mentioned",
+    "unknown",
+    "unspecified",
+)
+
+
+def _clean_highlights(values: list[str]) -> list[str]:
+    """Drop empty / 'not mentioned' placeholder tags, then cap to MAX_HIGHLIGHTS."""
+    cleaned = [
+        v
+        for v in values
+        if v and v.strip() and not any(m in v.lower() for m in _PLACEHOLDER_MARKERS)
+    ]
+    return cleaned[:MAX_HIGHLIGHTS]
 
 
 class ExtractedListing(BaseModel):
@@ -27,11 +54,17 @@ class ExtractedListing(BaseModel):
     highlights: list[str] = Field(
         default_factory=list,
         description=(
-            "Short bullet points of lifestyle rules / key facts, each a concise phrase "
-            "with a leading emoji when natural, e.g. '🚭 不抽烟', '🍃 不吸大麻', "
-            "'🚫 不带异性回家', '🐱 有猫', '🚇 近地铁'."
+            f"At most {MAX_HIGHLIGHTS} short bullet points covering only roommate-"
+            "compatibility / room factors (smoking, weed, pets, overnight guests, "
+            "schedule, gender preference, cleanliness, noise). No location, nearby "
+            "amenities, or price. e.g. '🚭 不抽烟', '🚫 不带异性回家', '🐱 养猫'."
         ),
     )
+
+    @field_validator("highlights")
+    @classmethod
+    def _clean(cls, v: list[str]) -> list[str]:
+        return _clean_highlights(v)
 
 
 class ListingPublic(BaseModel):
@@ -125,6 +158,11 @@ class ListingEdit(BaseModel):
     images: list[str] | None = None
     contact_type: str | None = None
     contact_value: str | None = None
+
+    @field_validator("highlights")
+    @classmethod
+    def _clean(cls, v: list[str] | None) -> list[str] | None:
+        return _clean_highlights(v) if v is not None else v
 
 
 class NativePostIn(BaseModel):
