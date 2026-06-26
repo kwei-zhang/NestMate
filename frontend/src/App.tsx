@@ -11,9 +11,10 @@ import Home from "./pages/Home";
 import ListingDetail from "./pages/ListingDetail";
 import Login from "./pages/Login";
 import MyPosts from "./pages/MyPosts";
+import Profile from "./pages/Profile";
 
 function NavBar() {
-  const { isAuthed, isAdmin, user, logout } = useAuth();
+  const { isAuthed, isAdmin, user } = useAuth();
   return (
     <header className="bg-white border-b">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
@@ -21,22 +22,20 @@ function NavBar() {
           NestMate
         </Link>
         <span className="text-xs text-gray-400 hidden sm:inline">多伦多华人找室友</span>
-        <nav className="ml-auto flex items-center gap-4 text-sm">
-          <Link to="/" className="hover:text-nest">
+        <nav className="ml-auto flex items-center gap-3 text-sm">
+          <Link
+            to="/"
+            className="px-3 py-1 rounded border border-gray-200 hover:border-nest hover:text-nest"
+          >
             房源
           </Link>
           {isAuthed && (
-            <>
-              <Link to="/favorites" className="hover:text-nest">
-                收藏
-              </Link>
-              <Link to="/my" className="hover:text-nest">
-                我的发布
-              </Link>
-              <Link to="/post/new" className="hover:text-nest">
-                发帖
-              </Link>
-            </>
+            <Link
+              to="/favorites"
+              className="px-3 py-1 rounded border border-gray-200 hover:border-nest hover:text-nest"
+            >
+              收藏
+            </Link>
           )}
           {isAdmin && (
             <>
@@ -49,9 +48,16 @@ function NavBar() {
             </>
           )}
           {isAuthed ? (
-            <button onClick={logout} className="text-gray-500 hover:text-nest">
-              退出{user?.display_name ? `（${user.display_name}）` : ""}
-            </button>
+            <Link to="/profile" className="flex items-center gap-2 hover:text-nest">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+              ) : (
+                <span className="w-7 h-7 rounded-full bg-nest/10 text-nest flex items-center justify-center text-xs">
+                  {(user?.display_name ?? "U").slice(0, 1)}
+                </span>
+              )}
+              <span className="hidden sm:inline">{user?.display_name ?? "我"}</span>
+            </Link>
           ) : (
             <Link to="/login" className="px-3 py-1 rounded bg-nest text-white hover:bg-nest-dark">
               登录
@@ -60,6 +66,22 @@ function NavBar() {
         </nav>
       </div>
     </header>
+  );
+}
+
+function PostFab() {
+  const { isAuthed } = useAuth();
+  if (!isAuthed) return null;
+  return (
+    <Link
+      to="/post/new"
+      title="发帖"
+      aria-label="发帖"
+      className="fixed bottom-6 right-6 z-20 w-14 h-14 rounded-full bg-nest text-white shadow-lg
+        flex items-center justify-center text-3xl leading-none hover:bg-nest-dark"
+    >
+      +
+    </Link>
   );
 }
 
@@ -110,6 +132,14 @@ export default function App() {
             }
           />
           <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <Profile />
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/post/new"
             element={
               <RequireAuth>
@@ -135,6 +165,7 @@ export default function App() {
           />
         </Routes>
       </main>
+      <PostFab />
     </div>
   );
 }
