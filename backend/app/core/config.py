@@ -29,6 +29,15 @@ class Settings(BaseSettings):
 
     admin_emails: str = ""
 
+    # Media (re-hosted images) + optional xhs cookie for fetching posts.
+    media_dir: str = "media"
+    media_url_base: str = ""  # defaults to oauth_redirect_base if empty
+    xhs_cookie: str = ""
+
+    @property
+    def media_base(self) -> str:
+        return self.media_url_base or self.oauth_redirect_base
+
     @property
     def admin_email_set(self) -> set[str]:
         return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}

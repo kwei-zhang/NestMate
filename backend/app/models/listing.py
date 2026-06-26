@@ -21,7 +21,7 @@ JSONType = JSON().with_variant(JSONB(), "postgresql")
 
 # Enumerated string values (kept as plain strings for simplicity/portability)
 SOURCE_VALUES = ("xhs", "native")
-STATUS_VALUES = ("pending_review", "published", "archived")
+STATUS_VALUES = ("pending_review", "published", "archived", "hidden", "expired")
 INTENT_VALUES = ("offering", "seeking")  # offering=招租(有房源) / seeking=求租
 CONTACT_TYPES = ("wechat", "phone", "xhs", "email")
 CHECK_STATES = ("ok", "changed_needs_ai", "auto_archived")
@@ -54,6 +54,10 @@ class Listing(Base):
     move_in_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     gender_pref: Mapped[str | None] = mapped_column(String(32), nullable=True)
     extracted_json: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    # AI-generated bullet points (lifestyle rules / key facts), e.g. "🚭 不抽烟".
+    highlights: Mapped[list | None] = mapped_column(JSONType, nullable=True)
+    # URLs of images verified by AI to be house/room photos.
+    images: Mapped[list | None] = mapped_column(JSONType, nullable=True)
 
     # Contact (gated — never returned in public payloads)
     contact_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
@@ -71,6 +75,11 @@ class Listing(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    # Last time the author meaningfully modified the post. Bumped on create and
+    # author edits; used to display "last modified" and to auto-hide stale posts.
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

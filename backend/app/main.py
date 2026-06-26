@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app.api import admin, auth, favorites, listings
+from app.api import admin, auth, favorites, listings, uploads
 from app.core.config import settings
 from app.services.staleness import run_staleness_check
 
@@ -38,9 +40,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve re-hosted images from the media directory.
+Path(settings.media_dir).mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
+
 app.include_router(auth.router)
 app.include_router(listings.router)
 app.include_router(favorites.router)
+app.include_router(uploads.router)
 app.include_router(admin.router)
 
 

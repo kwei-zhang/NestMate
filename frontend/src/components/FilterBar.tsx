@@ -1,14 +1,5 @@
 import type { ListingFilters } from "../api/types";
-
-const AREAS = [
-  "North York",
-  "Scarborough",
-  "Downtown",
-  "Markham",
-  "Richmond Hill",
-  "Mississauga",
-  "Waterloo",
-];
+import { AREAS } from "../constants";
 
 interface Props {
   value: ListingFilters;
@@ -30,15 +21,6 @@ export default function FilterBar({ value, onChange }: Props) {
       />
       <select
         className="border rounded px-2 py-1 text-sm"
-        value={value.intent ?? ""}
-        onChange={(e) => set("intent", e.target.value)}
-      >
-        <option value="">全部</option>
-        <option value="offering">招租</option>
-        <option value="seeking">求租</option>
-      </select>
-      <select
-        className="border rounded px-2 py-1 text-sm"
         value={value.area ?? ""}
         onChange={(e) => set("area", e.target.value)}
       >
@@ -49,6 +31,17 @@ export default function FilterBar({ value, onChange }: Props) {
           </option>
         ))}
       </select>
+      <select
+        className="border rounded px-2 py-1 text-sm"
+        value={value.has_room === undefined ? "" : value.has_room ? "yes" : "no"}
+        onChange={(e) =>
+          set("has_room", e.target.value === "" ? undefined : e.target.value === "yes")
+        }
+      >
+        <option value="">有无房源</option>
+        <option value="yes">有房源</option>
+        <option value="no">无房源</option>
+      </select>
       <input
         type="number"
         className="border rounded px-2 py-1 text-sm w-28"
@@ -56,20 +49,6 @@ export default function FilterBar({ value, onChange }: Props) {
         value={value.budget_max ?? ""}
         onChange={(e) => set("budget_max", e.target.value ? Number(e.target.value) : undefined)}
       />
-      <input
-        className="border rounded px-2 py-1 text-sm w-20"
-        placeholder="MBTI"
-        value={value.mbti ?? ""}
-        onChange={(e) => set("mbti", e.target.value.toUpperCase())}
-      />
-      <label className="text-sm flex items-center gap-1">
-        <input
-          type="checkbox"
-          checked={value.has_room === true}
-          onChange={(e) => set("has_room", e.target.checked ? true : undefined)}
-        />
-        有房源
-      </label>
       <label className="text-sm flex items-center gap-1">
         <input
           type="checkbox"

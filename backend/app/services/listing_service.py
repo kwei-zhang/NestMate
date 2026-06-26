@@ -29,4 +29,5 @@ def apply_extraction(listing: Listing, extracted: ExtractedListing) -> None:
         value = getattr(extracted, field)
         if value is not None:
             setattr(listing, field, value)
+    listing.highlights = extracted.highlights or None
     listing.extracted_json = data

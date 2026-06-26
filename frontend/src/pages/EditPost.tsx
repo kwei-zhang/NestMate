@@ -1,15 +1,22 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
-import { useCreatePost, useUploadImage } from "../api/hooks";
+import { useEditListing, useListing, useUploadImage } from "../api/hooks";
 import { AREAS, OTHER_AREA } from "../constants";
+import { useAuth } from "../store/auth";
 
-export default function CreatePost() {
+export default function EditPost() {
+  const { id } = useParams();
+  const listingId = Number(id);
   const navigate = useNavigate();
-  const createPost = useCreatePost();
+  const { user } = useAuth();
+  const { data, isLoading } = useListing(listingId);
+  const edit = useEditListing(listingId);
   const uploadImage = useUploadImage();
-  const [images, setImages] = useState<string[]>([]);
+
+  const [ready, setReady] = useState(false);
   const [otherArea, setOtherArea] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
   const [form, setForm] = useState({
     title: "",
     has_room: false,
@@ -20,7 +27,28 @@ export default function CreatePost() {
     contact_type: "wechat",
     contact_value: "",
     raw_text: "",
+    highlights: "",
   });
+
+  // Prefill once the listing loads.
+  useEffect(() => {
+    if (!data || ready) return;
+    setForm({
+      title: data.title ?? "",
+      has_room: data.has_room === true,
+      area: data.area ?? "",
+      budget_min: data.budget_min?.toString() ?? "",
+      budget_max: data.budget_max?.toString() ?? "",
+      has_pets: data.has_pets === true,
+      contact_type: data.contact_type ?? "wechat",
+      contact_value: "",
+      raw_text: data.raw_text ?? "",
+      highlights: (data.highlights ?? []).join("\n"),
+    });
+    setImages(data.images ?? []);
+    setOtherArea(!!data.area && !AREAS.includes(data.area));
+    setReady(true);
+  }, [data, ready]);
 
   function set<K extends keyof typeof form>(key: K, v: (typeof form)[K]) {
     setForm({ ...form, [key]: v });
@@ -34,34 +62,44 @@ export default function CreatePost() {
         const url = await uploadImage.mutateAsync(file);
         setImages((prev) => [...prev, url]);
       } catch {
-        // skip files that fail to upload
+        // skip failed uploads
       }
     }
   }
 
+  if (isLoading || !data) return <p className="text-gray-400 text-center py-8">加载中…</p>;
+  if (data.created_by !== user?.id)
+    return <p className="text-red-500 text-center py-8">只能编辑自己的帖子</p>;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    await createPost.mutateAsync({
+    const highlights = form.highlights
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    await edit.mutateAsync({
       title: form.title || null,
       has_room: form.has_room,
       area: form.area || null,
       budget_min: form.budget_min ? Number(form.budget_min) : null,
       budget_max: form.budget_max ? Number(form.budget_max) : null,
       has_pets: form.has_pets,
-      contact_type: form.contact_type,
-      contact_value: form.contact_value,
+      // Only overwrite contact when the author typed a new value.
+      ...(form.contact_value
+        ? { contact_type: form.contact_type, contact_value: form.contact_value }
+        : {}),
       raw_text: form.raw_text,
+      highlights,
       images,
     });
-    navigate("/");
+    navigate(`/listing/${listingId}`);
   }
 
   const input = "border rounded px-3 py-2 text-sm w-full";
 
   return (
     <form onSubmit={submit} className="max-w-xl mx-auto bg-white border rounded-lg p-6 space-y-3">
-      <h1 className="text-lg font-semibold">发布求租 / 招租帖</h1>
-      <p className="text-xs text-gray-400">提交后立即发布。</p>
+      <h1 className="text-lg font-semibold">编辑帖子</h1>
 
       <input
         className={input}
@@ -124,7 +162,6 @@ export default function CreatePost() {
           onChange={(e) => set("budget_max", e.target.value)}
         />
       </div>
-      <p className="text-xs text-gray-400">MBTI 和生活习惯标签会由 AI 从你的描述里自动识别，无需手填。</p>
       <label className="text-sm flex items-center gap-2">
         <input
           type="checkbox"
@@ -133,25 +170,17 @@ export default function CreatePost() {
         />
         有宠物 / 可养宠物
       </label>
-      <div className="flex gap-2">
-        <select
-          className={input}
-          value={form.contact_type}
-          onChange={(e) => set("contact_type", e.target.value)}
-        >
-          <option value="wechat">微信</option>
-          <option value="phone">电话</option>
-          <option value="xhs">小红书</option>
-          <option value="email">邮箱</option>
-        </select>
-        <input
-          className={input}
-          placeholder="联系方式"
-          required
-          value={form.contact_value}
-          onChange={(e) => set("contact_value", e.target.value)}
+
+      <div>
+        <label className="text-sm text-gray-600 block mb-1">生活习惯标签（每行一个）</label>
+        <textarea
+          className={`${input} h-24`}
+          placeholder={"🚭 不抽烟\n🚫 不带异性回家"}
+          value={form.highlights}
+          onChange={(e) => set("highlights", e.target.value)}
         />
       </div>
+
       <textarea
         className={`${input} h-32`}
         placeholder="详细描述…"
@@ -161,7 +190,7 @@ export default function CreatePost() {
       />
 
       <div>
-        <label className="text-sm text-gray-600 block mb-1">房屋图片（可多张）</label>
+        <label className="text-sm text-gray-600 block mb-1">房屋图片</label>
         <input type="file" accept="image/*" multiple onChange={onFiles} className="text-sm" />
         {uploadImage.isPending && <span className="ml-2 text-xs text-gray-400">上传中…</span>}
         {images.length > 0 && (
@@ -182,12 +211,31 @@ export default function CreatePost() {
         )}
       </div>
 
+      <div className="flex gap-2">
+        <select
+          className={input}
+          value={form.contact_type}
+          onChange={(e) => set("contact_type", e.target.value)}
+        >
+          <option value="wechat">微信</option>
+          <option value="phone">电话</option>
+          <option value="xhs">小红书</option>
+          <option value="email">邮箱</option>
+        </select>
+        <input
+          className={input}
+          placeholder="更新联系方式（留空则不变）"
+          value={form.contact_value}
+          onChange={(e) => set("contact_value", e.target.value)}
+        />
+      </div>
+
       <button
         type="submit"
-        disabled={createPost.isPending}
+        disabled={edit.isPending}
         className="px-4 py-2 rounded bg-nest text-white hover:bg-nest-dark disabled:opacity-50"
       >
-        {createPost.isPending ? "发布中…" : "发布"}
+        {edit.isPending ? "保存中…" : "保存修改"}
       </button>
     </form>
   );

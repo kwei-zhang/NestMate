@@ -17,6 +17,7 @@ dependencies = [
     "openai>=1.54",
     "apscheduler>=3.10",
     "python-multipart>=0.0.12",
+    "beautifulsoup4>=4.12",
 ]
 
 [project.optional-dependencies]

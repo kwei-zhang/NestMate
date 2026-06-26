@@ -7,6 +7,8 @@ publishing.
 """
 from __future__ import annotations
 
+from datetime import date
+
 from app.core.config import settings
 from app.schemas.listing import ExtractedListing
 
@@ -22,7 +24,15 @@ SYSTEM_PROMPT = (
     "- area: normalize to common GTA areas like North York, Scarborough, Downtown, "
     "Markham, Richmond Hill, Waterloo, Mississauga when possible.\n"
     "- Extract contact info: contact_type one of wechat|phone|xhs|email and contact_value.\n"
-    "- If a field is not present, return null. Never guess."
+    "- move_in_date: output ISO YYYY-MM-DD. If the post gives a month/day with no year, "
+    "assume the CURRENT year (given below as today's date). Use today's date to resolve "
+    "relative dates like 下个月/月底/ASAP. If the resulting date would already be in the "
+    "past this year, roll it to next year.\n"
+    "- highlights: a list of short bullet points capturing lifestyle rules and key "
+    "selling points, each a concise phrase with a leading emoji when natural "
+    "(e.g. '🚭 不抽烟', '🍃 不吸大麻', '🚫 不带异性回家', '🐱 有猫', '🚇 近地铁'). "
+    "Only include rules/facts actually stated or clearly implied.\n"
+    "- If a field is not present, return null (or an empty list for highlights). Never guess."
 )
 
 
@@ -32,11 +42,12 @@ def extract_listing(raw_text: str, source_url: str | None = None) -> ExtractedLi
 
     client = OpenAI(api_key=settings.openai_api_key)
     user_content = raw_text if not source_url else f"链接: {source_url}\n\n{raw_text}"
+    system_content = f"{SYSTEM_PROMPT}\n\nToday's date is {date.today().isoformat()}."
 
     completion = client.beta.chat.completions.parse(
         model=settings.openai_model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": user_content},
         ],
         response_format=ExtractedListing,

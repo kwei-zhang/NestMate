@@ -15,8 +15,12 @@ export interface Listing {
   area: string | null;
   move_in_date: string | null;
   gender_pref: string | null;
+  highlights: string[] | null;
+  images: string[] | null;
   contact_type: string | null;
+  created_by: number | null;
   created_at: string;
+  updated_at: string;
   published_at: string | null;
 }
 
@@ -48,8 +52,6 @@ export interface ListingFilters {
   budget_max?: number;
   has_room?: boolean;
   has_pets?: boolean;
-  mbti?: string;
-  intent?: string;
   gender_pref?: string;
   q?: string;
   sort?: string;

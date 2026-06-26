@@ -55,6 +55,27 @@ def auth_headers(user) -> dict[str, str]:
 
 
 @pytest.fixture
+def own_listing(db_session, user) -> Listing:
+    """A published native post owned by `user`."""
+    listing = Listing(
+        source="native",
+        title="求室友",
+        raw_text="downtown 求室友 预算1500",
+        status="published",
+        has_room=False,
+        area="Downtown",
+        contact_type="wechat",
+        contact_value="me123",
+        created_by=user.id,
+        published_at=datetime.now(UTC),
+    )
+    db_session.add(listing)
+    db_session.commit()
+    db_session.refresh(listing)
+    return listing
+
+
+@pytest.fixture
 def published_listing(db_session) -> Listing:
     listing = Listing(
         source="xhs",

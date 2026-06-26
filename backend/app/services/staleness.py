@@ -105,8 +105,24 @@ def check_listing(db: Session, listing: Listing) -> str:
     return outcome
 
 
+def hide_expired_native(db: Session) -> int:
+    """Auto-hide published native posts not modified in over a month."""
+    cutoff = datetime.now(UTC) - STALE_AFTER
+    listings = db.scalars(
+        select(Listing).where(Listing.status == "published", Listing.source == "native")
+    ).all()
+    hidden = 0
+    for listing in listings:
+        updated = _as_aware(listing.updated_at)
+        if updated is not None and updated < cutoff:
+            listing.status = "expired"
+            hidden += 1
+    db.commit()
+    return hidden
+
+
 def run_staleness_check() -> dict[str, int]:
-    """Iterate all published xhs listings. Returns a counter of outcomes."""
+    """Daily job: re-check xhs listings and auto-hide stale native posts."""
     counts: dict[str, int] = {}
     db = SessionLocal()
     try:
@@ -116,6 +132,7 @@ def run_staleness_check() -> dict[str, int]:
         for listing in listings:
             outcome = check_listing(db, listing)
             counts[outcome] = counts.get(outcome, 0) + 1
+        counts["native_expired"] = hide_expired_native(db)
     finally:
         db.close()
     return counts

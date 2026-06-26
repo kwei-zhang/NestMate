@@ -34,7 +34,12 @@ export default function AdminIngest() {
 
   const ingest = useMutation({
     mutationFn: async () =>
-      (await api.post("/admin/ingest", { source_url: sourceUrl || null, raw_text: rawText })).data,
+      (
+        await api.post("/admin/ingest", {
+          source_url: sourceUrl || null,
+          raw_text: rawText || null,
+        })
+      ).data,
     onSuccess: () => {
       setSourceUrl("");
       setRawText("");
@@ -59,7 +64,7 @@ export default function AdminIngest() {
       <section className="bg-white border rounded-lg p-6 space-y-3">
         <h1 className="text-lg font-semibold">录入小红书帖子</h1>
         <p className="text-xs text-gray-400">
-          贴入链接和正文，AI 会自动抽取结构化信息生成待审核草稿。
+          只贴链接即可，后端会尝试自动抓取正文；抓取失败时可手动粘贴。AI 会抽取结构化信息和生活习惯标签。
         </p>
         <input
           className={input}
@@ -69,17 +74,22 @@ export default function AdminIngest() {
         />
         <textarea
           className={`${input} h-40`}
-          placeholder="粘贴帖子正文…"
+          placeholder="帖子正文（留空则尝试从链接自动抓取）"
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
         />
         <button
           onClick={() => ingest.mutate()}
-          disabled={!rawText || ingest.isPending}
+          disabled={(!rawText && !sourceUrl) || ingest.isPending}
           className="px-4 py-2 rounded bg-nest text-white hover:bg-nest-dark disabled:opacity-50"
         >
-          {ingest.isPending ? "AI 抽取中…" : "AI 抽取并生成草稿"}
+          {ingest.isPending ? "抓取 / AI 处理中…" : "抓取并 AI 生成草稿"}
         </button>
+        {ingest.isError && (
+          <p className="text-sm text-red-500">
+            抓取失败（小红书可能要求登录）。请手动粘贴正文后重试。
+          </p>
+        )}
       </section>
 
       <section className="space-y-3">
@@ -110,6 +120,15 @@ export default function AdminIngest() {
                 </span>
               )}
             </div>
+            {l.highlights && l.highlights.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {l.highlights.map((h) => (
+                  <span key={h} className="text-xs px-2 py-0.5 rounded-full bg-nest/10 text-nest">
+                    {h}
+                  </span>
+                ))}
+              </div>
+            )}
             <p className="text-sm text-gray-600 line-clamp-2">{l.raw_text}</p>
           </div>
         ))}

@@ -2,12 +2,15 @@ import { Link, Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "./store/auth";
 import AdminIngest from "./pages/AdminIngest";
+import AdminListings from "./pages/AdminListings";
 import AuthCallback from "./pages/AuthCallback";
 import CreatePost from "./pages/CreatePost";
+import EditPost from "./pages/EditPost";
 import Favorites from "./pages/Favorites";
 import Home from "./pages/Home";
 import ListingDetail from "./pages/ListingDetail";
 import Login from "./pages/Login";
+import MyPosts from "./pages/MyPosts";
 
 function NavBar() {
   const { isAuthed, isAdmin, user, logout } = useAuth();
@@ -27,15 +30,23 @@ function NavBar() {
               <Link to="/favorites" className="hover:text-nest">
                 收藏
               </Link>
+              <Link to="/my" className="hover:text-nest">
+                我的发布
+              </Link>
               <Link to="/post/new" className="hover:text-nest">
                 发帖
               </Link>
             </>
           )}
           {isAdmin && (
-            <Link to="/admin" className="hover:text-nest">
-              后台
-            </Link>
+            <>
+              <Link to="/admin" className="hover:text-nest">
+                录入
+              </Link>
+              <Link to="/admin/all" className="hover:text-nest">
+                全部帖子
+              </Link>
+            </>
           )}
           {isAuthed ? (
             <button onClick={logout} className="text-gray-500 hover:text-nest">
@@ -72,6 +83,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
+          <Route
+            path="/listing/:id/edit"
+            element={
+              <RequireAuth>
+                <EditPost />
+              </RequireAuth>
+            }
+          />
           <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route
@@ -79,6 +98,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <Favorites />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/my"
+            element={
+              <RequireAuth>
+                <MyPosts />
               </RequireAuth>
             }
           />
@@ -95,6 +122,14 @@ export default function App() {
             element={
               <RequireAdmin>
                 <AdminIngest />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/all"
+            element={
+              <RequireAdmin>
+                <AdminListings />
               </RequireAdmin>
             }
           />

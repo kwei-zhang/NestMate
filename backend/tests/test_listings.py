@@ -15,7 +15,9 @@ def test_filter_by_area_and_budget(client, published_listing):
     assert len(client.get("/listings", params={"budget_max": 1200}).json()) == 1
     assert len(client.get("/listings", params={"budget_max": 800}).json()) == 0
     assert len(client.get("/listings", params={"has_pets": True}).json()) == 1
-    assert len(client.get("/listings", params={"mbti": "INFP"}).json()) == 1
+    # published_listing has has_room=False (it's a 求租/seeking post).
+    assert len(client.get("/listings", params={"has_room": False}).json()) == 1
+    assert len(client.get("/listings", params={"has_room": True}).json()) == 0
 
 
 def test_detail_excludes_contact(client, published_listing):

@@ -79,3 +79,64 @@ export function useCreatePost() {
     mutationFn: (body: Record<string, unknown>) => api.post("/listings", body),
   });
 }
+
+export function useMyListings() {
+  return useQuery({
+    queryKey: ["my-listings"],
+    queryFn: async () => (await api.get<Listing[]>("/listings/mine")).data,
+  });
+}
+
+export function useRepublish() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.post(`/listings/${id}/republish`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      qc.invalidateQueries({ queryKey: ["listings"] });
+    },
+  });
+}
+
+export function useEditListing(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.patch(`/listings/${id}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["listing", id] });
+      qc.invalidateQueries({ queryKey: ["listings"] });
+    },
+  });
+}
+
+export function useAdminListings(status?: string) {
+  return useQuery({
+    queryKey: ["admin", "all", status ?? ""],
+    queryFn: async () =>
+      (await api.get<Listing[]>("/admin/listings", { params: status ? { status } : {} })).data,
+  });
+}
+
+export function useHideListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: number; hide: boolean }) =>
+      api.post(`/admin/listings/${vars.id}/${vars.hide ? "hide" : "unhide"}`),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["listings"] });
+      qc.invalidateQueries({ queryKey: ["admin", "all"] });
+      qc.invalidateQueries({ queryKey: ["listing", vars.id] });
+    },
+  });
+}
+
+export function useUploadImage() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const { data } = await api.post<{ url: string }>("/uploads/image", form);
+      return data.url;
+    },
+  });
+}
